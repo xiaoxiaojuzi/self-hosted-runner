@@ -50,7 +50,7 @@ The `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` is stored on GitHub Actions 
     * Push the image using the `docker push` command.
 
 ### Cons
-In the Step2, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are AWS IAM user credentials to authenticate requests. They are long-term credentials that you need to create, modify and rotate the access keys. If you leak or lose the access keys, you must delete the access key and create new. 
+In the Step2, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are AWS IAM user credentials to authenticate requests. They are long-term credentials that you need to create, modify and rotate the access keys. If you leak or lose the access keys, you must delete the access key and create new pair. 
 And they are stored on GitHub Actions secrets. So when you change the access keys on AWS, you must sync it to GitHub Actions secrets. 
 
 There is another option to manage identity and access, it is temporary security credentials (IAM roles).
