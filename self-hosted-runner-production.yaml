@@ -1,0 +1,25 @@
+apiVersion: actions.summerwind.dev/v1alpha1
+kind: RunnerDeployment
+metadata:
+  name: runner-deployment-production
+spec:
+  template:
+    spec:
+      serviceAccountName: self-hosted-runner-service-account
+      repository: xiaoxiaojuzi/cat
+      labels:
+        - production
+---
+apiVersion: actions.summerwind.dev/v1alpha1
+kind: HorizontalRunnerAutoscaler
+metadata:
+  name: runner-deployment-autoscaler
+spec:
+  scaleTargetRef:
+    name: runner-deployment-production
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: TotalNumberOfQueuedAndInProgressWorkflowRuns
+    repositoryNames:
+    - xiaoxiaojuzi/cat
