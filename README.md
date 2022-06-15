@@ -4,12 +4,12 @@
 The article [Github action with k8s self-hosted runner](https://medium.com/geekculture/github-actions-self-hosted-runner-on-kubernetes-55d077520a31) shows how to deploy [GitHub Actions self-hosted runners](https://docs.github.com/en/actions/hosting-your-own-runners/about-self-hosted-runners) as a container in [Amazon EKS](https://aws.amazon.com/eks/). In above article, [actions-runner-controller (ARC)](https://github.com/actions-runner-controller/actions-runner-controller) operates self-hosted runners for GitHub Actions on EKS.
 
 Sometimes, we need to access AWS resources on GitHub Actions self-hosted runner. For example, after building a Docker image, we need to push the Docker image to AWS ECR. That requires the self-hosted runner which running on EKS has permissions to access the ECR. There are usually two ways to do it:
-- hardcode AWS IAM User pk/sk
+- IAM User access keys
 - IAM Role assumption
 
 It's stronly recommended to use IAM role assumeption way with EKS, but before we looking into the best practice, let's dive into general practice first.
 
-## general practice: Using AWS IAM User Access Keys
+## General Practice: IAM User access keys
 Let's take an example, blow are a git action config sample include 4 steps to build and push image to AWS ECR.
 
 *Note: The following workflow file only includes job steps and omits other configurations for concision.*
@@ -58,7 +58,7 @@ In Step2, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are AWS IAM user crede
 And they are stored on GitHub Actions secrets. So when you change the access keys on AWS, you must sync it to GitHub Actions secrets.
 
 There is another option to manage identity and access, and it is temporary security credentials (IAM roles). Due to Amazon EKS being integrated with IAM deeply, you can securely control access to AWS resources using IAM role. Next, let's see how to use AWS Assume Role.
-## Best practice: Using AWS Assume Role
+## Best practice: IAM Role assumption
 Let's look at another example.
 ```YAML
 env:
@@ -83,11 +83,10 @@ There are only 3 steps to push the image using assume Role on Github Action.
 
 For now, we don't need step 2 `Configure AWS credentials` on Using AWS IAM User Access Keys. Also, we don't need to store the access keys on Github secrets.
 
-you might curious how the permission being granted. 
+You might curious how the permission being granted. 
 TODO: exmplain how assume role works for permission granting.
 
-Now we understood how the AWS assume role works for applications deploy on AWS, then
-Back to our example, we can implement it with two simple steps:
+Now we understand how the AWS assume role works for applications deploy on AWS, then back to our example, we can implement it with two simple steps:
 * IAM roles for service accounts
 * Configure the service account for the runner
 
@@ -185,8 +184,8 @@ spec:
       repository: YOUR_REPOSITORY
 ```
 ## future work
-In the above, We show how self-hosted runners on AWS EKS use credentials to access AWS resources.
-Suppose we use GitHub-hosted runners or self-hosted runners on Other clouds; how to use credentials to access AWS resources. Is the only way to use User Access Key, or is there another way? Let's figure it out in future.
+In the above, We show how self-hosted runners on AWS EKS use two credentials(long-term and short-term) to access AWS resources.
+Suppose we use GitHub-hosted runners or self-hosted runners on Other clouds; how to use credentials to access AWS resources. Is the only way to use User Access Keys, or is there another way? Let's figure it out in future.
 ## Reference:
 [Best practices for managing AWS access keys](https://docs.aws.amazon.com/general/latest/gr/aws-access-keys-best-practices.html)
 
