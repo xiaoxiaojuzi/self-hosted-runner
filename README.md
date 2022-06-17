@@ -1,17 +1,18 @@
 
-# The Credentials for GitHub Actions Self-Hosted Runner on AWS EKS
+# The Best Practice for AWS Security Credentials Management
+**GitHub Actions Self-Hosted Runner on AWS EKS**
 *Brief: Do not use AWS IAM User Access Keys directly in GitHub Actions Self-Hosted Runner on EKS. Instead, define an IAM role with minimum permissions for the Self-Hosted Runner and launch the Self-Hosted Runner with the role.*
 
-The article [Github action with k8s self-hosted runner](https://medium.com/geekculture/github-actions-self-hosted-runner-on-kubernetes-55d077520a31) shows how to deploy [GitHub Actions self-hosted runners](https://docs.github.com/en/actions/hosting-your-own-runners/about-self-hosted-runners) as a container in [Amazon EKS](https://aws.amazon.com/eks/). In the above article, [actions-runner-controller (ARC)](https://github.com/actions-runner-controller/actions-runner-controller) is used to operate self-hosted runners for GitHub Actions on EKS.
+The article [Github action with k8s self-hosted runner](https://medium.com/geekculture/github-actions-self-hosted-runner-on-kubernetes-55d077520a31) shows how to deploy [GitHub Actions self-hosted runners](https://docs.github.com/en/actions/hosting-your-own-runners/about-self-hosted-runners) as a container in [Amazon EKS](https://aws.amazon.com/eks/). In the above article, [actions-runner-controller (ARC)](https://github.com/actions-runner-controller/actions-runner-controller) is used to operate self-hosted runners for GitHub Actions.
 
 Sometimes, we need to access AWS resources on GitHub Actions self-hosted runner. For example, after building a Docker image, we need to push the Docker image to AWS ECR. That requires the self-hosted runner which running on EKS has permissions to access the ECR. There are usually two ways to do it:
-- IAM User Access Keys
-- IAM Roles for Service Accounts (IRSA)
+- *IAM User Access Keys*: A general practice when using GitHub-hosted runners to run jobs.
+- *IAM Roles for Service Accounts (IRSA)*: A Best practice when using self-hosted runners on EKS to run jobs.
 
-It's stronly recommended to use IRSA, but before we looking into the best practice, let's dive into general practice first.
+Before we looking into the best practice, firstly, let's dive into the general practice.
 
 ## General Practice: IAM User access keys
-Let's take an example, The following is a GitHub Action sample including 3 steps to push docker image to AWS ECR.
+Let's take an example, The following is a GitHub Action workflows sample including 3 steps to push docker image to AWS ECR.
 * Configure AWS credentials
 * Log in to Amazon ECR
 * Push the image to Amazon ECR repository
@@ -88,7 +89,7 @@ There are two sub-steps:
   * Push the image using the `docker push` command.
 
 ### Why it's not good enough
-In Step2, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are AWS IAM user credentials to authenticate requests. They are long-term credentials and need you to create, modify and rotate the access keys. If you leak or lose the access keys, you must delete the access key and create new pair. 
+In Step 2, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are AWS IAM user credentials to authenticate requests. They are long-term credentials and need you to create, modify and rotate the access keys. If you leak or lose the access keys, you must delete the access key and create new pair. 
 And they are stored on GitHub Actions secrets. So when you manage the access keys on AWS, you must sync it to GitHub Actions secrets.
 
 There is another option to manage identity and access, and it is temporary security credentials (IAM roles). Due to Amazon EKS being integrated with IAM deeply, you can securely control access to AWS resources using IAM role. Next, let's see how to use AWS Assume Role.
@@ -109,14 +110,17 @@ jobs:
           docker tag ${{ env.CACHE_IAMGE_TAG }} $ECR_REGISTRY/$ECR_REPOSITORY:$CACHE_IAMGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$CACHE_IAMGE_TAG
 ```
-Using IRSA, there are only 2 steps on Github Action config. Step 1 `Configure AWS credentials` on Using AWS IAM User Access Keys is not needed. Of course, we don't need to store the access keys on Github secrets.
+Using IRSA, there are only 2 steps on Github Action workflow. Step 1 `Configure AWS credentials` on Using AWS IAM User Access Keys is not needed. Of course, we don't need to store the access keys on Github secrets.
 
-You might curious about what credentials are used without Step `Configr AWS credentials`. It is working by IRSA. In IRSA, by combining an OpenID Connect (OIDC) identity provider and Kubernetes service account annotations, you can use IAM roles at the pod level. The article [Diving into IAM Roles for Service Accounts](https://aws.amazon.com/cn/blogs/containers/diving-into-iam-roles-for-service-accounts/) helps you understand how the various pieces join together and what really happens behind the scene.
+You might curious about what credentials are used without Step `Configr AWS credentials`. It is working by IRSA. In IRSA, by combining an OpenID Connect (OIDC) identity provider and Kubernetes service account annotations, you can use IAM roles at the pod level. 
 
-Briefly, in IRSA, before AWS SDK evaluats `GetAuthorizationToken` to get authorization token of ECR registry, AWS SDK will get web identity token credentials by `sts:AssumeRoleWithWebIdentity` API call. The `sts:AssumeRoleWithWebIdentity` API call will return temporary security credentials that will be used by `GetAuthorizationToken`.
+In this case, briefly, before AWS SDK evaluats `GetAuthorizationToken` to get authorization token of ECR registry, AWS SDK will call `sts:AssumeRoleWithWebIdentity` API to get temporary security credentials that will be used by `GetAuthorizationToken`. The two sub-steps is handled by AWS SDK, and the application developer don't care the how to manage the credentials.
+
+If you want to know the details, the article [Diving into IAM Roles for Service Accounts](https://aws.amazon.com/cn/blogs/containers/diving-into-iam-roles-for-service-accounts/) helps you understand how the various pieces join together and what really happens behind the scene.
 ![](/assets/images/webidentity.jpg)
 
-Next, we will focus on how to implement IRSA.
+Next, we will focus on how to enable IRSA. 
+
 Enable IRSA to access AWS resources in [three steps](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html):
 * Create an IAM OIDC provider for the cluster
 * Create an IAM role and associate it to an service account
@@ -126,7 +130,7 @@ Enable IRSA to access AWS resources in [three steps](https://docs.aws.amazon.com
    We can create an OIDC provider for cluster using `eksctl` or the AWS Management Console.
   `eksctl utils associate-iam-oidc-provider --cluster YOUR-CLUSTER --approve`
 #### Create an IAM role and associate it to a service account
-1. Create a policy `self_hosted_runner_policy` same with User Access Key
+1. Create a policy `self_hosted_runner_policy` same with User Access Key way
 2. Create the Role
 Create a role `self_hosted_runner_role` with policy `self_hosted_runner_policy`.
 And add trusted entities as flowing policy. This policy is allowing your service account to assume the role using `sts:AssumeRoleWithWebIdentity` action.
@@ -182,7 +186,7 @@ spec:
 ```
 ## Next Work
 In the above, We show how self-hosted runners on AWS EKS use two credentials(long-term and short-term) to access AWS resources.
-Suppose we use GitHub-hosted runners or self-hosted runners on Other clouds; how to use credentials to access AWS resources. Is the only way to use User Access Keys, or is there another way? Let's figure it out in the future.
+Next, suppose we use GitHub-hosted runners or self-hosted runners on Other clouds; how to use credentials to access AWS resources. Is the only way to use User Access Keys, or is there another way? Let's figure it out in the future.
 ## Reference:
 [Best practices for managing AWS access keys](https://docs.aws.amazon.com/general/latest/gr/aws-access-keys-best-practices.html)
 
