@@ -131,8 +131,8 @@ Enable IRSA to access AWS resources in [three steps](https://docs.aws.amazon.com
    We can create an OIDC provider for cluster using `eksctl` or the AWS Management Console.
   `eksctl utils associate-iam-oidc-provider --cluster YOUR-CLUSTER --approve`
 #### 2. Create an IAM role and associate it to a service account
-1. Create a policy `self_hosted_runner_policy` same with User Access Key way
-2. Create the Role
+* Create a policy `self_hosted_runner_policy` same with User Access Key way
+* Create the Role
 Create a role `self_hosted_runner_role` with policy `self_hosted_runner_policy`.
 And add trusted entities as flowing policy. This policy is allowing your service account to assume the role using `sts:AssumeRoleWithWebIdentity` action.
 The principal for this policy is the created OIDC provider. `sts:AssumeRoleWithWebIdentity` action returns a role's temporary credential. In subsequent AWS API calls to access resources in the account that owns the role.
@@ -156,7 +156,7 @@ The principal for this policy is the created OIDC provider. `sts:AssumeRoleWithW
   ]
 }
 ```
-3. Associate an IAM role with a service account
+* Associate an IAM role with a service account
 We can associate an IAM role with a Kubernetes service account. This service account can then provide AWS permissions to the containers in any pod that uses that service account.
   Create a service account `self-hosted-runner-service-account.yaml` with the role.
 ```YAML
