@@ -117,8 +117,9 @@ You might curious about what credentials are used without Step `Configr AWS cred
 
 In this case, briefly, before AWS SDK evaluats `GetAuthorizationToken` to get authorization token of ECR registry, AWS SDK will call `sts:AssumeRoleWithWebIdentity` API to get temporary security credentials that will be used by `GetAuthorizationToken`. The two sub-steps is handled by AWS SDK, and the application developer don't care the how to manage the credentials.
 
-If you want to know the details, the article [Diving into IAM Roles for Service Accounts](https://aws.amazon.com/cn/blogs/containers/diving-into-iam-roles-for-service-accounts/) helps you understand how the various pieces join together and what really happens behind the scene.
 ![](/assets/images/webidentity.jpg)
+
+If you want to know the details, the article [Diving into IAM Roles for Service Accounts](https://aws.amazon.com/cn/blogs/containers/diving-into-iam-roles-for-service-accounts/) helps you understand how the various pieces join together and what really happens behind the scene. And as a Java Developer, you can study the process of how SDK calls `sts:AssumeRoleWithWebIdentity` API by `WebIdentityTokenCredentialsProvider` [class](https://github.com/aws/aws-sdk-java/blob/fd409dee8ae23fb8953e0bb4dbde65536a7e0514/aws-java-sdk-core/src/main/java/com/amazonaws/auth/WebIdentityTokenCredentialsProvider.java) on `aws-java-sdk-core`.
 
 Next, we will focus on how to enable IRSA. 
 
@@ -126,11 +127,11 @@ Enable IRSA to access AWS resources in [three steps](https://docs.aws.amazon.com
 * Create an IAM OIDC provider for the cluster
 * Create an IAM role and associate it to an service account
 * Configure ervice account for the runner
-#### Create an IAM OIDC provider for the cluster
+#### 1. Create an IAM OIDC provider for the cluster
    To use IAM roles for service accounts in cluster, we must create an IAM OIDC Identity Provider. 
    We can create an OIDC provider for cluster using `eksctl` or the AWS Management Console.
   `eksctl utils associate-iam-oidc-provider --cluster YOUR-CLUSTER --approve`
-#### Create an IAM role and associate it to a service account
+#### 2. Create an IAM role and associate it to a service account
 1. Create a policy `self_hosted_runner_policy` same with User Access Key way
 2. Create the Role
 Create a role `self_hosted_runner_role` with policy `self_hosted_runner_policy`.
@@ -167,7 +168,7 @@ metadata:
   annotations:
     eks.amazonaws.com/role-arn: arn:aws:iam::YOUR_ACCOUNT_ID:role/self_hosted_runner_role
 ```
-### Configure the service account for the runner
+### 3. Configure the service account for the runner
 On [actions-runner-controller (ARC)](https://github.com/actions-runner-controller/actions-runner-controller), there are two ways to use self-hosted runner:
 * Manage runners one by one with `Runner`.
 * Manage a set of runners with `RunnerDeployment`.
