@@ -184,9 +184,12 @@ spec:
       serviceAccountName: self-hosted-runner-service-account
       repository: YOUR_REPOSITORY
 ```
-## Next Work
-In the above, We show how self-hosted runners on AWS EKS use two types of credentials(long-term and short-term) to access AWS resources.
-Next, suppose we use GitHub-hosted runners or self-hosted runners on Other clouds; how to use credentials to access AWS resources. Is the only way to use User Access Keys, or is there another way? Let's figure it out in the future.
+## Conclusion
+This article presents two approaches (IAM User Access Keys and IRSA) in which Github action Self-Hosted runners on AWS EKS gain access to AWS resources and services. We don't recommend the User Access Keys on this scene due to the security and management of these credentials' lifecycle. Instead, the IRSA is best practice, we should define an IAM role with minimum permissions for the Self-Hosted Runner and launch the Self-Hosted Runner with the role.
+
+## Future Work
+In some scenarios, we use GitHub-Hosted runners or Self-Hosted runners on Other clouds; how to use credentials to access AWS resources and services. Is the only way to use User Access Keys, or is there another way? Let's figure it out in the future.
+
 ## Reference:
 About Credential: 
 * [Best practices for managing AWS access keys](https://docs.aws.amazon.com/general/latest/gr/aws-access-keys-best-practices.html)
